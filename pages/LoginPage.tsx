@@ -1,9 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Lock, User, AlertCircle, Shield, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../App';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Alert } from '../components/ui/alert';
+import { Spinner } from '../components/ui/spinner';
+import { Separator } from '../components/ui/separator';
+import {
+  BarChartIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LockIcon,
+  ShieldIcon,
+  ShoppingCartIcon,
+  UserIcon,
+  WarehouseIcon,
+} from '../components/ui/icons';
+
+const PILLARS = [
+  { label: 'Sales', icon: ShoppingCartIcon },
+  { label: 'Inventory', icon: WarehouseIcon },
+  { label: 'Finance', icon: BarChartIcon },
+];
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -28,7 +47,7 @@ export const LoginPage: React.FC = () => {
     setTimeout(() => {
       setIsLoading(false);
       if (username === 'admin' && password === 'admin') {
-        showToast('Welcome back, Admin!', 'success');
+        showToast('Welcome back, Admin!');
         navigate('/');
       } else {
         setError('Invalid username or password. Try admin/admin.');
@@ -38,118 +57,118 @@ export const LoginPage: React.FC = () => {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-sm text-slate-600">Checking authentication...</p>
+      <div className="grid min-h-screen place-items-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Spinner className="size-6 text-primary" />
+          <p className="text-sm text-muted-foreground">Checking authentication…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[60%] items-center justify-center bg-gradient-to-br from-blue-600/10 via-blue-50 to-purple-50 p-8">
-        <div className="w-full h-full max-w-4xl flex items-center justify-center">
-          <div className="text-center space-y-6">
-            <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/20">
-              <span className="text-4xl font-bold text-white">A</span>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">Aether ERP</h2>
-              <p className="text-sm text-slate-500 mt-1">Enterprise Resource Planning</p>
-            </div>
-            <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mt-8">
-              {['Sales', 'Inventory', 'Finance'].map((label) => (
-                <div key={label} className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm">
-                  <p className="text-xs font-semibold text-slate-700">{label}</p>
-                </div>
-              ))}
-            </div>
+    <div className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_1fr]">
+      <div className="relative hidden flex-col justify-between border-r bg-secondary/30 p-10 lg:flex">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-xl bg-primary text-base font-semibold text-primary-foreground">A</span>
+          <div>
+            <p className="text-sm font-semibold leading-tight">Aether ERP</p>
+            <p className="text-xs text-muted-foreground">Enterprise resource planning</p>
           </div>
         </div>
+
+        <div className="max-w-md">
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight">
+            One workspace for the whole operation.
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Orders, inventory, billing and financial reporting in a single system of record, built for teams that ship.
+          </p>
+
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            {PILLARS.map((pillar) => (
+              <div key={pillar.label} className="grid gap-2 rounded-lg border bg-card p-3">
+                <pillar.icon className="size-4 text-primary" />
+                <span className="text-xs font-medium">{pillar.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">© 2026 Aether Systems. All rights reserved.</p>
       </div>
 
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-                <span className="text-white font-bold text-lg">A</span>
-              </div>
-              <h1 className="text-2xl font-bold text-slate-900">AetherERP</h1>
-            </div>
-            <h2 className="text-xl font-semibold text-slate-800">Welcome Back</h2>
-            <p className="text-sm text-slate-600">Sign in to access the ERP dashboard</p>
+      <div className="flex items-center justify-center p-6 sm:p-10">
+        <div className="grid w-full max-w-sm gap-6">
+          <div className="flex items-center gap-3 lg:hidden">
+            <span className="grid size-10 place-items-center rounded-xl bg-primary text-base font-semibold text-primary-foreground">A</span>
+            <p className="text-sm font-semibold">Aether ERP</p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <h2 className="text-xl font-semibold tracking-tight">Welcome back</h2>
+            <p className="text-sm text-muted-foreground">Sign in to access the ERP dashboard.</p>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm animate-in fade-in">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
+            <Alert variant="danger" title="Sign-in failed">
+              {error}
+            </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Username
-              </label>
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="username" required>Username</Label>
               <Input
+                id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 required
-                icon={<User size={16} />}
+                leftIcon={<UserIcon />}
                 disabled={isLoading}
                 autoFocus
+                autoComplete="username"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Password
-              </label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="password" required>Password</Label>
               <Input
+                id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
-                icon={<Lock size={16} />}
+                leftIcon={<LockIcon />}
                 disabled={isLoading}
-                rightElement={
+                autoComplete="current-password"
+                rightSlot={
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                    className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     tabIndex={-1}
                   >
-                    {showPassword ? (
-                      <EyeOff size={16} strokeWidth={2} />
-                    ) : (
-                      <Eye size={16} strokeWidth={2} />
-                    )}
+                    {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
                   </button>
                 }
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12"
-              isLoading={isLoading}
-              disabled={isLoading || !username || !password}
-            >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+            <Button type="submit" className="w-full" loading={isLoading} disabled={!username || !password}>
+              {isLoading ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
 
-          <div className="pt-6 border-t border-slate-200">
-            <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-              <Shield size={14} />
-              <span>Demo: admin / admin</span>
+          <div className="grid gap-3">
+            <Separator />
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <ShieldIcon className="size-3.5" />
+              <span>Demo access: admin / admin</span>
             </div>
           </div>
         </div>

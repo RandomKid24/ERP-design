@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "befui": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:RandomKid24/befui",
+        "mcp"
+      ]
+    }
+  }
+}

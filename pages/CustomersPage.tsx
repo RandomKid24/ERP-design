@@ -1,12 +1,14 @@
-
-import React, { useState, useMemo } from 'react';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Search, UserPlus, Building2, ShieldCheck, ArrowUpRight, MoreHorizontal, Filter } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../App';
 import { PageLayout } from '../components/layout/PageLayout';
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Avatar } from '../components/ui/avatar';
+import { SearchInput } from '../components/ui/search-input';
+import { Segmented } from '../components/ui/segmented';
+import { EmptyState } from '../components/ui/empty-state';
+import { ArrowUpRightIcon, BuildingIcon, MoreIcon, ShieldCheckIcon, UserPlusIcon, UsersIcon } from '../components/ui/icons';
 
 const CUSTOMERS = [
   { id: 'CUST-001', name: 'Alice Thompson', role: 'Enterprise Admin', company: 'TechFlow Inc.', email: 'alice@techflow.com', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=alice' },
@@ -20,122 +22,115 @@ const CUSTOMERS = [
   { id: 'CUST-009', name: 'Clark Kent', role: 'Journalist', company: 'Daily Planet', email: 'clark@dailyplanet.com', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=clark' },
 ];
 
+const statusVariant = (status: string) => {
+  switch (status) {
+    case 'Active': return 'success' as const;
+    case 'Pending': return 'warning' as const;
+    default: return 'danger' as const;
+  }
+};
+
 export const CustomersPage: React.FC = () => {
   const { showToast, globalSearch, setGlobalSearch, customers: demoCustomers } = useApp();
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Pending' | 'Inactive'>('All');
 
   const filteredCustomers = useMemo(() => {
-    // Merge local and demo data
     const combined = [...CUSTOMERS, ...demoCustomers];
-    // Filter by search
-    return combined.filter(c =>
-      c.name.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      c.email.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      c.company.toLowerCase().includes(globalSearch.toLowerCase())
-    );
-  }, [globalSearch, demoCustomers]);
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return { variant: 'success' as const, dotClass: 'bg-emerald-500 animate-pulse', containerClass: 'bg-emerald-100/50 text-emerald-700' };
-      case 'Pending':
-        return { variant: 'warning' as const, dotClass: 'bg-amber-500', containerClass: 'bg-amber-100/50 text-amber-700' };
-      default:
-        return { variant: 'error' as const, dotClass: 'bg-rose-500', containerClass: 'bg-rose-100/50 text-rose-700' };
-    }
-  };
+    const term = globalSearch.trim().toLowerCase();
+    return combined.filter(c => {
+      if (statusFilter !== 'All' && c.status !== statusFilter) return false;
+      if (!term) return true;
+      return (
+        c.name.toLowerCase().includes(term) ||
+        c.email.toLowerCase().includes(term) ||
+        c.company.toLowerCase().includes(term)
+      );
+    });
+  }, [globalSearch, demoCustomers, statusFilter]);
 
   const actions = (
-    <Button
-      size="sm"
-      onClick={() => showToast('Initializing account setup...', 'info')}
-      leftIcon={<UserPlus size={14} strokeWidth={3} />}
-    >
-      New Client Account
+    <Button size="sm" onClick={() => showToast('Initializing account setup…', 'info')}>
+      <UserPlusIcon /> New client
     </Button>
   );
 
   return (
     <PageLayout
-      title="Customer Registry"
+      title="Customer registry"
       description="Manage enterprise-level client relationships."
       actions={actions}
     >
-
-      <div className="flex items-center gap-3">
-        <Input
-          variant="white"
-          inputSize="sm"
-          className="rounded-full shadow-sm"
-          icon={<Search size={14} strokeWidth={2.5} />}
-          placeholder="Filter customer records..."
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
           value={globalSearch}
-          onChange={(e) => setGlobalSearch(e.target.value)}
-          containerClassName="max-w-md"
+          onValueChange={setGlobalSearch}
+          placeholder="Filter customer records…"
+          shortcut="/"
+          className="w-full max-w-sm"
         />
-        <Button variant="outline" size="sm" className="rounded-full" leftIcon={<Filter size={14} />}>Filter Status</Button>
+        <Segmented
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          options={[
+            { value: 'All', label: 'All' },
+            { value: 'Active', label: 'Active' },
+            { value: 'Pending', label: 'Pending' },
+            { value: 'Inactive', label: 'Inactive' },
+          ]}
+        />
+        <span className="ml-auto text-xs text-muted-foreground">{filteredCustomers.length} clients</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCustomers.length > 0 ? filteredCustomers.map((customer) => {
-          const statusStyle = getStatusConfig(customer.status);
-          return (
-            <Card key={customer.id} noPadding className="group hover:border-blue-200/50 overflow-hidden">
-              <div className="p-5 border-b border-slate-50 flex items-start justify-between bg-slate-50/30">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <img src={customer.avatar} alt="" className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm group-hover:scale-105 transition-transform" />
-                    <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${customer.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
-                  </div>
+      {filteredCustomers.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredCustomers.map((customer) => (
+            <Card key={customer.id} hoverable className="flex flex-col">
+              <div className="flex items-start justify-between gap-3 p-5 pb-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={customer.name} src={customer.avatar} size="lg" status={customer.status === 'Active' ? 'online' : customer.status === 'Pending' ? 'away' : 'offline'} />
                   <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate leading-none tracking-tight">{customer.name}</h3>
-                    <span className="text-xs text-slate-400 font-medium mt-2 inline-block leading-none">{customer.id}</span>
+                    <h3 className="truncate text-sm font-semibold leading-tight">{customer.name}</h3>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{customer.id} · {customer.role}</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="text-slate-300 hover:text-slate-600"
-                  leftIcon={<MoreHorizontal size={14} />}
-                />
+                <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${customer.name}`}>
+                  <MoreIcon />
+                </Button>
               </div>
 
-              <div className="p-6 space-y-5">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-slate-400">Organization</p>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <Building2 size={12} className="text-slate-300" />
-                      <span className="truncate">{customer.company}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 text-right flex flex-col items-end">
-                    <p className="text-xs font-medium text-slate-400 mb-1.5">Status</p>
-                    <Badge className={`px-2 py-0.5 inline-flex items-center gap-1.5 border-none shadow-sm ${statusStyle.containerClass}`}>
-                      <span className={`w-1 h-1 rounded-full ${statusStyle.dotClass}`} />
-                      {customer.status}
-                    </Badge>
-                  </div>
+              <div className="grid grid-cols-2 gap-4 border-t px-5 py-4">
+                <div className="grid gap-1">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Organization</p>
+                  <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                    <BuildingIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    {customer.company}
+                  </p>
+                </div>
+                <div className="grid justify-items-end gap-1">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Status</p>
+                  <Badge variant={statusVariant(customer.status)} dot>{customer.status}</Badge>
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-slate-50/20 border-t border-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={12} className="text-emerald-500/80" />
-                  <span className="text-xs font-medium text-slate-500">Secure Client</span>
-                </div>
-                <Button variant="link" size="xs" className="text-blue-600 hover:text-blue-700 font-bold" rightIcon={<ArrowUpRight size={12} strokeWidth={3} />}>
-                  View Portfolio
+              <div className="mt-auto flex items-center justify-between border-t px-5 py-3">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ShieldCheckIcon className="size-3.5 text-success" /> Secure client
+                </span>
+                <Button variant="link" size="xs" onClick={() => showToast(`Opening portfolio for ${customer.name}`, 'info')}>
+                  View portfolio <ArrowUpRightIcon />
                 </Button>
               </div>
             </Card>
-          );
-        }) : (
-          <div className="col-span-full py-24 text-center">
-            <p className="text-sm text-slate-400">No matching indices</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<UsersIcon />}
+          title="No matching clients"
+          description="Try a different name, email or company."
+          action={<Button variant="outline" size="sm" onClick={() => setGlobalSearch('')}>Clear search</Button>}
+        />
+      )}
     </PageLayout>
   );
 };

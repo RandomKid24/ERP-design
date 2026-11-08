@@ -1,63 +1,62 @@
-
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  ShoppingBag, 
-  CreditCard, 
-  Settings, 
-  PieChart, 
-  HelpCircle,
-  Package,
-  FileText,
-  Quote
-} from 'lucide-react';
+import {
+  LayoutDashboardIcon,
+  UsersIcon,
+  ShoppingBagIcon,
+  CreditCardIcon,
+  SettingsIcon,
+  PieChartIcon,
+  LifeBuoyIcon,
+  PackageIcon,
+  FileTextIcon,
+  QuoteIcon,
+} from './components/ui/icons';
 import { NavItem, StatItem, Transaction } from './types';
 
 export const SIDEBAR_LINKS: NavItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/' },
-  { title: 'Orders', icon: ShoppingBag, href: '/orders', badge: '12' },
-  { title: 'Quotations', icon: Quote, href: '/quotations' },
-  { title: 'Customers', icon: Users, href: '/customers' },
-  { title: 'Inventory', icon: Package, href: '/inventory' },
-  { title: 'Financials', icon: CreditCard, href: '/financials' },
-  { title: 'Reports', icon: PieChart, href: '/reports' },
-  { title: 'Invoices', icon: FileText, href: '/invoices' },
+  { title: 'Dashboard', icon: LayoutDashboardIcon, href: '/' },
+  { title: 'Orders', icon: ShoppingBagIcon, href: '/orders', badge: '12' },
+  { title: 'Quotations', icon: QuoteIcon, href: '/quotations' },
+  { title: 'Customers', icon: UsersIcon, href: '/customers' },
+  { title: 'Inventory', icon: PackageIcon, href: '/inventory' },
+  { title: 'Financials', icon: CreditCardIcon, href: '/financials' },
+  { title: 'Reports', icon: PieChartIcon, href: '/reports' },
+  { title: 'Invoices', icon: FileTextIcon, href: '/invoices' },
 ];
 
 export const SECONDARY_LINKS: NavItem[] = [
-  { title: 'Settings', icon: Settings, href: '/settings' },
-  { title: 'Support', icon: HelpCircle, href: '/support' },
+  { title: 'Settings', icon: SettingsIcon, href: '/settings' },
+  { title: 'Support', icon: LifeBuoyIcon, href: '/support' },
 ];
 
 export const DASHBOARD_STATS: StatItem[] = [
-  { 
-    label: 'Total Revenue', 
-    value: '$45,231.89', 
-    change: '+20.1% from last month', 
+  {
+    label: 'Total Revenue',
+    value: '$45,231.89',
+    change: '+20.1% from last month',
     trend: 'up',
-    icon: CreditCard 
+    icon: CreditCardIcon
   },
-  { 
-    label: 'Active Users', 
-    value: '2,350', 
-    change: '+180.1% from last month', 
+  {
+    label: 'Active Users',
+    value: '2,350',
+    change: '+180.1% from last month',
     trend: 'up',
-    icon: Users 
+    icon: UsersIcon
   },
-  { 
-    label: 'Sales', 
-    value: '+12,234', 
-    change: '+19% from last month', 
+  {
+    label: 'Sales',
+    value: '+12,234',
+    change: '+19% from last month',
     trend: 'up',
-    icon: ShoppingBag 
+    icon: ShoppingBagIcon
   },
-  { 
-    label: 'Active Inventory', 
-    value: '573', 
-    change: '-2.1% from last month', 
+  {
+    label: 'Active Inventory',
+    value: '573',
+    change: '-2.1% from last month',
     trend: 'down',
-    icon: Package 
+    icon: PackageIcon
   },
 ];
 

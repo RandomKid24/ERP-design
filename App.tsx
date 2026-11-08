@@ -13,8 +13,12 @@ import { ReportsPage } from './pages/ReportsPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SupportPage } from './pages/SupportPage';
-import { ToastType } from './components/ui/Toast';
+import { ChangelogPage } from './pages/ChangelogPage';
+import { Toaster, toast as befToast } from './components/ui/toast';
+import { TooltipProvider } from './components/ui/tooltip';
 import { AppNotification } from './types';
+
+type ToastType = 'success' | 'error' | 'info';
 
 interface AppContextType {
   showToast: (message: string, type?: ToastType) => void;
@@ -25,8 +29,6 @@ interface AppContextType {
   unreadCount: number;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  toast: { message: string; type: ToastType } | null;
-  onCloseToast: () => void;
   simulateDemo: () => void;
   clearDemo: () => void;
   isDemoActive: boolean;
@@ -55,9 +57,12 @@ const AppMain: React.FC = () => {
   const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
-  const showToast = (message: string, type: ToastType = 'success') => setToast({ message, type });
+  const showToast = (message: string, type: ToastType = 'success') => {
+    if (type === 'error') befToast.error(message);
+    else if (type === 'info') befToast.info(message);
+    else befToast.success(message);
+  };
 
   const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
@@ -99,35 +104,37 @@ const AppMain: React.FC = () => {
     unreadCount,
     markAsRead,
     markAllAsRead,
-    toast,
-    onCloseToast: () => setToast(null),
     simulateDemo,
     clearDemo,
     isDemoActive,
     orders,
     customers
-  }), [globalSearch, notifications, unreadCount, toast, isDemoActive, orders, customers]);
+  }), [globalSearch, notifications, unreadCount, isDemoActive, orders, customers]);
 
   return (
     <AppContext.Provider value={contextValue}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="orders" element={<OrdersPage />} />
-            <Route path="quotations" element={<QuotationsPage />} />
-            <Route path="customers" element={<CustomersPage />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="financials" element={<FinancialsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="support" element={<SupportPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<DashboardLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="orders" element={<OrdersPage />} />
+              <Route path="quotations" element={<QuotationsPage />} />
+              <Route path="customers" element={<CustomersPage />} />
+              <Route path="inventory" element={<InventoryPage />} />
+              <Route path="financials" element={<FinancialsPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="invoices" element={<InvoicesPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="support" element={<SupportPage />} />
+              <Route path="changelog" element={<ChangelogPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+      </TooltipProvider>
     </AppContext.Provider>
   );
 };

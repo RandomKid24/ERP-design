@@ -1,21 +1,65 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { DASHBOARD_STATS } from '../constants';
-import { StatCard } from '../components/ui/StatCard';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { TransactionTable } from '../components/ui/TransactionTable';
-import { RevenueChart, SalesTargetChart } from '../components/ui/ChartsSection';
-import { Download, Layout as LayoutIcon, Check, Bell, Activity, RefreshCw } from 'lucide-react';
-import { WidgetConfig, WidgetId, AppNotification } from '../types';
+import { CHART_DATA, DASHBOARD_STATS, RECENT_TRANSACTIONS } from '../constants';
 import { PageLayout } from '../components/layout/PageLayout';
+import { StatCard } from '../components/ui/stat-card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Progress } from '../components/ui/progress';
+import { ProgressRing } from '../components/ui/progress-ring';
+import { Sparkline } from '../components/ui/charts';
+import { LineChart } from '../components/ui/line-chart';
+import { BarList } from '../components/ui/bar-list';
+import { DataTable, type Column } from '../components/ui/data-table';
+import { DownloadIcon, LayoutGridIcon, CheckIcon, ActivityIcon, RefreshIcon, MaximizeIcon } from '../components/ui/icons';
+import { WidgetConfig, WidgetId, Transaction } from '../types';
 
 const DEFAULT_LAYOUT: WidgetConfig[] = [
     { id: 'revenue-chart', span: 2 },
     { id: 'goal-chart', span: 1 },
     { id: 'activity-table', span: 2 },
     { id: 'global-reach', span: 1 },
+];
+
+const SPARKS = [
+    [12, 18, 14, 22, 26, 24, 31],
+    [8, 12, 10, 16, 15, 21, 24],
+    [10, 9, 14, 13, 18, 22, 25],
+    [30, 28, 27, 29, 24, 22, 21],
+];
+
+const WIDGET_META: Record<WidgetId, { title: string; description: string }> = {
+    'revenue-chart': { title: 'Revenue stream', description: 'Fiscal performance against target.' },
+    'goal-chart': { title: 'Goal progress', description: 'Quarterly targets achievement.' },
+    'activity-table': { title: 'Recent activity', description: 'Latest verified system events.' },
+    'global-reach': { title: 'Global reach', description: 'Operational distribution by region.' },
+};
+
+const transactionColumns: Column<Transaction>[] = [
+    {
+        key: 'customer',
+        header: 'Customer',
+        value: (row) => row.customer,
+        render: (row) => (
+            <div className="grid gap-0.5">
+                <span className="font-medium">{row.customer}</span>
+                <span className="text-xs text-muted-foreground">{row.email}</span>
+            </div>
+        ),
+    },
+    {
+        key: 'status',
+        header: 'Status',
+        value: (row) => row.status,
+        render: (row) => (
+            <Badge variant={row.status === 'Completed' ? 'success' : row.status === 'Pending' ? 'warning' : 'danger'} dot>
+                {row.status}
+            </Badge>
+        ),
+    },
+    { key: 'date', header: 'Date', value: (row) => row.date },
+    { key: 'amount', header: 'Amount', value: (row) => row.amount, align: 'right' },
 ];
 
 export const DashboardPage: React.FC = () => {
@@ -65,59 +109,71 @@ export const DashboardPage: React.FC = () => {
         setDraggedIndex(null);
     };
 
-    const renderWidget = (config: WidgetConfig) => {
-        const commonProps = {
-            isDraggable: isEditMode,
-            showHandle: isEditMode,
-            onDragStart: () => handleDragStart(layout.indexOf(config)),
-            onDragOver: handleDragOver,
-            onDrop: () => handleDrop(layout.indexOf(config)),
-            onResize: () => toggleResize(config.id),
-            className: `${config.span === 1 ? 'col-span-1' : config.span === 2 ? 'col-span-2' : 'col-span-3'} 
-                  ${isEditMode ? 'ring-2 ring-dashed ring-slate-200' : ''}`
-        };
-
-        switch (config.id) {
+    const renderBody = (id: WidgetId) => {
+        switch (id) {
             case 'revenue-chart':
                 return (
-                    <Card key={config.id} {...commonProps} title="Revenue Stream" description="Fiscal performance tracking.">
-                        <RevenueChart />
-                    </Card>
+                    <LineChart
+                        area
+                        labels={CHART_DATA.map(d => d.name)}
+                        series={[
+                            { name: 'Revenue', data: CHART_DATA.map(d => d.revenue) },
+                            { name: 'Target', data: CHART_DATA.map(d => d.target), color: 'text-muted-foreground' },
+                        ]}
+                        format={(n) => `$${(n / 1000).toFixed(1)}k`}
+                    />
                 );
             case 'goal-chart':
                 return (
-                    <Card key={config.id} {...commonProps} title="Goal Progress" description="Quarterly targets achievement.">
-                        <SalesTargetChart />
-                    </Card>
-                );
-            case 'activity-table':
-                return (
-                    <Card key={config.id} {...commonProps} title="Recent Activity" description="Latest verified system events." noPadding maxHeight="none">
-                        <TransactionTable />
-                    </Card>
-                );
-            case 'global-reach':
-                return (
-                    <Card key={config.id} {...commonProps} title="Global Reach" description="Operational distribution.">
-                        <div className="space-y-6">
+                    <div className="flex h-full flex-col justify-center gap-5">
+                        <div className="flex items-center gap-5">
+                            <ProgressRing value={72} size={104} aria-label="Quarterly target achieved">
+                                72%
+                            </ProgressRing>
+                            <div className="grid gap-1">
+                                <span className="text-2xl font-semibold tracking-tight tabular-nums">$182k</span>
+                                <span className="text-[13px] text-muted-foreground">of $250k target</span>
+                            </div>
+                        </div>
+                        <div className="grid gap-3">
                             {[
-                                { region: 'Americas', val: 75 },
-                                { region: 'EMEA', val: 45 },
-                                { region: 'APAC', val: 32 },
-                                { region: 'LATAM', val: 18 },
+                                { label: 'New business', value: 84, tone: 'primary' as const },
+                                { label: 'Expansion', value: 61, tone: 'success' as const },
+                                { label: 'Renewals', value: 47, tone: 'warning' as const },
                             ].map((item) => (
-                                <div key={item.region} className="space-y-2">
-                                    <div className="flex justify-between text-xs font-medium text-slate-500">
-                                        <span>{item.region}</span>
-                                        <span className="text-slate-900">{item.val}%</span>
+                                <div key={item.label} className="grid gap-1.5">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">{item.label}</span>
+                                        <span className="font-medium tabular-nums">{item.value}%</span>
                                     </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                        <div className="bg-blue-600 h-full rounded-full transition-all duration-1000" style={{ width: `${item.val}%` }}></div>
-                                    </div>
+                                    <Progress value={item.value} tone={item.tone} aria-label={item.label} />
                                 </div>
                             ))}
                         </div>
-                    </Card>
+                    </div>
+                );
+            case 'activity-table':
+                return (
+                    <DataTable
+                        rows={RECENT_TRANSACTIONS}
+                        columns={transactionColumns}
+                        rowKey={(row) => row.id}
+                        pageSize={5}
+                        filterPlaceholder="Filter activity…"
+                        className="border-0 shadow-none"
+                    />
+                );
+            case 'global-reach':
+                return (
+                    <BarList
+                        items={[
+                            { label: 'Americas', value: 75 },
+                            { label: 'EMEA', value: 45 },
+                            { label: 'APAC', value: 32 },
+                            { label: 'LATAM', value: 18 },
+                        ]}
+                        format={(n) => `${n}%`}
+                    />
                 );
             default:
                 return null;
@@ -132,29 +188,15 @@ export const DashboardPage: React.FC = () => {
         }, 1500);
     };
 
-
-
     const actions = (
         <>
             {isDemoActive ? (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-rose-200 text-rose-600 hover:bg-rose-50"
-                    onClick={clearDemo}
-                    leftIcon={<RefreshCw size={14} />}
-                >
-                    Flush Demo
+                <Button variant="outline" size="sm" onClick={clearDemo}>
+                    <RefreshIcon /> Flush demo
                 </Button>
             ) : (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                    onClick={simulateDemo}
-                    leftIcon={<Activity size={14} />}
-                >
-                    Simulate Demo
+                <Button variant="outline" size="sm" onClick={simulateDemo}>
+                    <ActivityIcon /> Simulate demo
                 </Button>
             )}
             <Button
@@ -162,38 +204,72 @@ export const DashboardPage: React.FC = () => {
                 size="sm"
                 onClick={() => {
                     setIsEditMode(!isEditMode);
-                    if (isEditMode) showToast('Dashboard configuration saved', 'success');
-                    else showToast('Layout unlocked.', 'info');
+                    showToast(isEditMode ? 'Dashboard configuration saved' : 'Layout unlocked. Drag cards to rearrange.', isEditMode ? 'success' : 'info');
                 }}
-                leftIcon={isEditMode ? <Check size={14} /> : <LayoutIcon size={14} />}
             >
-                {isEditMode ? 'Save Layout' : 'Customize Dashboard'}
+                {isEditMode ? <CheckIcon /> : <LayoutGridIcon />}
+                {isEditMode ? 'Save layout' : 'Customize'}
             </Button>
-            <Button
-                size="sm"
-                onClick={handleExport}
-                isLoading={isExporting}
-                leftIcon={<Download size={14} />}
-            >
-                Export CSV
+            <Button size="sm" onClick={handleExport} loading={isExporting}>
+                <DownloadIcon /> Export CSV
             </Button>
         </>
     );
 
     return (
         <PageLayout
-            title="Enterprise Overview"
+            title="Enterprise overview"
             description="Monitoring real-time operational status and metrics."
             actions={actions}
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {DASHBOARD_STATS.map((stat) => (
-                    <StatCard key={stat.label} stat={stat} />
-                ))}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {DASHBOARD_STATS.map((stat, index) => {
+                    const Icon = stat.icon;
+                    return (
+                        <StatCard
+                            key={stat.label}
+                            label={stat.label}
+                            value={stat.value}
+                            delta={parseFloat(stat.change.replace(/[^0-9.-]/g, ''))}
+                            icon={<Icon />}
+                            chart={<Sparkline data={SPARKS[index % SPARKS.length]} className={stat.trend === 'down' ? 'text-destructive' : 'text-success'} />}
+                        />
+                    );
+                })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 transition-all duration-300 gap-6">
-                {layout.map(config => renderWidget(config))}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {layout.map((config, index) => {
+                    const span = config.span === 1 ? 'lg:col-span-1' : config.span === 2 ? 'lg:col-span-2' : 'lg:col-span-3';
+                    const meta = WIDGET_META[config.id];
+                    return (
+                        <div
+                            key={config.id}
+                            draggable={isEditMode}
+                            onDragStart={() => handleDragStart(index)}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(index)}
+                            className={`min-w-0 ${span} ${isEditMode ? 'cursor-grab rounded-xl ring-2 ring-dashed ring-border active:cursor-grabbing' : ''}`}
+                        >
+                            <Card className="h-full">
+                                <CardHeader className="flex-row items-start justify-between gap-3">
+                                    <div className="grid gap-1">
+                                        <CardTitle>{meta.title}</CardTitle>
+                                        <CardDescription>{meta.description}</CardDescription>
+                                    </div>
+                                    {isEditMode && (
+                                        <Button variant="ghost" size="icon-sm" onClick={() => toggleResize(config.id)} aria-label="Resize card">
+                                            <MaximizeIcon />
+                                        </Button>
+                                    )}
+                                </CardHeader>
+                                <CardContent>
+                                    {renderBody(config.id)}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    );
+                })}
             </div>
         </PageLayout>
     );

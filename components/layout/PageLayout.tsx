@@ -1,6 +1,11 @@
-
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '../ui/Breadcrumb';
+import { PageHeader } from '../ui/app-shell';
+import { Breadcrumb } from '../ui/breadcrumb';
+
+export interface BreadcrumbItem {
+    label: string;
+    href?: string;
+}
 
 interface PageLayoutProps {
     title: string;
@@ -20,29 +25,11 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
     breadcrumbs
 }) => {
     return (
-        <div
-            className={`w-full transition-all duration-300 animate-in fade-in flex flex-col gap-2 ${className}`}
-        >
+        <div className={`flex w-full flex-col gap-5 ${className}`}>
             {breadcrumbs && breadcrumbs.length > 0 && (
                 <Breadcrumb items={breadcrumbs} />
             )}
-            
-            <div className="flex flex-col gap-0.5 mb-3 px-1">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex flex-col gap-1">
-                        <h1 className="text-4xl font-bold text-slate-900 tracking-tight leading-none whitespace-nowrap">{title}</h1>
-                        {description && (
-                            <p className="text-sm text-slate-500 font-medium">{description}</p>
-                        )}
-                    </div>
-                    {actions && (
-                        <div className="flex items-center gap-2 shrink-0">
-                            {actions}
-                        </div>
-                    )}
-                </div>
-            </div>
-
+            <PageHeader title={title} description={description} actions={actions} className="mb-0" />
             {children}
         </div>
     );

@@ -1,12 +1,19 @@
-
 import React, { useMemo } from 'react';
-import { Card } from '../components/ui/Card';
-import { DataTable, Column } from '../components/ui/DataTable';
-import { Input } from '../components/ui/Input';
-import { FileText, Download, Clock, ExternalLink, BarChart3, Search } from 'lucide-react';
-import { Button } from '../components/ui/Button';
 import { useApp } from '../App';
 import { PageLayout } from '../components/layout/PageLayout';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { DataTable, type Column } from '../components/ui/data-table';
+import {
+  BarChartIcon,
+  ClockIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  FileSpreadsheetIcon,
+  FileTextIcon,
+  PlusIcon,
+} from '../components/ui/icons';
 
 interface ReportTemplate {
   name: string;
@@ -22,108 +29,114 @@ const TEMPLATES: ReportTemplate[] = [
   { name: 'Inventory Lifecycle Log', type: 'Logistics', size: '0.8 MB' },
 ];
 
+const COLLECTIONS = [
+  { title: 'Sales Summary', icon: BarChartIcon, count: 24, last: '2h ago' },
+  { title: 'Inventory Logs', icon: FileTextIcon, count: 156, last: 'Yesterday' },
+  { title: 'User Activity', icon: ClockIcon, count: 12, last: '1h ago' },
+  { title: 'Tax Statements', icon: FileSpreadsheetIcon, count: 8, last: '3d ago' },
+];
+
 export const ReportsPage: React.FC = () => {
-  const { showToast, globalSearch, setGlobalSearch } = useApp();
+  const { showToast, globalSearch } = useApp();
 
   const filteredTemplates = useMemo(() => {
+    const term = globalSearch.trim().toLowerCase();
+    if (!term) return TEMPLATES;
     return TEMPLATES.filter(t =>
-      t.name.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      t.type.toLowerCase().includes(globalSearch.toLowerCase())
+      t.name.toLowerCase().includes(term) ||
+      t.type.toLowerCase().includes(term)
     );
   }, [globalSearch]);
 
   const columns: Column<ReportTemplate>[] = [
     {
       key: 'name',
-      label: 'Document Identity',
+      header: 'Document',
+      value: (item) => item.name,
+      sortable: true,
       render: (item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-white transition-colors">
-            <FileText size={14} className="text-slate-400" />
-          </div>
-          <span className="text-sm font-semibold text-slate-800">{item.name}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-secondary/60 text-muted-foreground">
+            <FileTextIcon className="size-4" />
+          </span>
+          <span className="font-medium">{item.name}</span>
         </div>
-      )
+      ),
     },
     {
       key: 'type',
-      label: 'Audit Type',
-      cellClassName: 'text-xs text-slate-400 font-medium'
+      header: 'Audit type',
+      value: (item) => item.type,
+      sortable: true,
+      render: (item) => <Badge variant="outline">{item.type}</Badge>,
     },
-    {
-      key: 'size',
-      label: 'Capacity',
-      cellClassName: 'text-xs text-slate-400 font-medium'
-    },
-    {
-      key: 'actions',
-      label: '',
-      sortable: false,
-      align: 'right',
-      render: (item) => (
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={(e) => { e.stopPropagation(); showToast(`Downloading ${item.name}`, 'success'); }}
-          className="text-slate-300 hover:text-blue-600"
-          leftIcon={<Download size={14} />}
-        />
-      )
-    }
+    { key: 'size', header: 'Capacity', value: (item) => item.size, align: 'right' },
   ];
+
+  const actions = (
+    <Button size="sm" onClick={() => showToast('Opening report builder', 'info')}>
+      <PlusIcon /> New template
+    </Button>
+  );
 
   return (
     <PageLayout
-      title="Enterprise Reports"
+      title="Enterprise reports"
       description="Generate and manage comprehensive business insights."
+      actions={actions}
     >
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { title: 'Sales Summary', icon: BarChart3, count: 24, last: '2h ago' },
-          { title: 'Inventory Logs', icon: FileText, count: 156, last: 'Yesterday' },
-          { title: 'User Activity', icon: Clock, count: 12, last: '1h ago' },
-          { title: 'Tax Statements', icon: Download, count: 8, last: '3d ago' },
-        ].map((item) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {COLLECTIONS.map((item) => (
           <Card
             key={item.title}
+            hoverable
+            className="cursor-pointer p-5"
             onClick={() => showToast(`Opening ${item.title} directory`, 'info')}
-            className="hover:border-blue-600/30 transition-all cursor-pointer group"
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="p-1.5 bg-slate-50 rounded-lg group-hover:bg-blue-50 transition-colors">
-                <item.icon className="text-slate-400 group-hover:text-blue-600" size={14} strokeWidth={2.5} />
-              </div>
-              <ExternalLink size={10} className="text-slate-200 group-hover:text-slate-400" />
+            <div className="mb-4 flex items-start justify-between">
+              <span className="grid size-9 place-items-center rounded-lg border bg-secondary/60 text-muted-foreground">
+                <item.icon className="size-4" />
+              </span>
+              <ExternalLinkIcon className="size-3.5 text-muted-foreground/50" />
             </div>
-            <h3 className="font-bold text-slate-900 text-sm tracking-tight leading-none mb-1.5">{item.title}</h3>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">{item.count} Reports</span>
-              <span className="text-xs font-medium text-slate-300">{item.last}</span>
+            <h3 className="text-sm font-semibold tracking-tight">{item.title}</h3>
+            <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+              <span>{item.count} reports</span>
+              <span>{item.last}</span>
             </div>
           </Card>
         ))}
       </div>
 
-      <Card noPadding title="Templates" description="Predefined auditing structures.">
-        <div className="px-5 py-3 border-b border-slate-100 bg-white">
-          <Input
-            variant="white"
-            inputSize="sm"
-            className="max-w-xs rounded-full shadow-sm"
-            placeholder="Search report templates..."
-            value={globalSearch}
-            onChange={(e) => setGlobalSearch(e.target.value)}
-            onClear={() => setGlobalSearch('')}
-            icon={<Search size={14} className="text-slate-400" strokeWidth={2.5} />}
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight">Templates</h3>
+            <p className="text-[13px] text-muted-foreground">Predefined auditing structures.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => showToast('Import dialog opened', 'info')}>
+            <DownloadIcon /> Import
+          </Button>
+        </div>
+        <div className="p-5">
+          <DataTable
+            rows={filteredTemplates}
+            columns={columns}
+            rowKey={(item) => item.name}
+            pageSize={6}
+            filterPlaceholder="Search report templates…"
+            rowActions={(item) => (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Download ${item.name}`}
+                onClick={() => showToast(`Downloading ${item.name}`)}
+              >
+                <DownloadIcon />
+              </Button>
+            )}
           />
         </div>
-        <DataTable
-          data={filteredTemplates}
-          columns={columns}
-          rowKey={(item) => item.name}
-          className="border-none"
-        />
       </Card>
     </PageLayout>
   );

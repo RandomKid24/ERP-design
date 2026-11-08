@@ -1,21 +1,18 @@
-
 import React, { useState, useMemo } from 'react';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { DataTable, Column } from '../components/ui/DataTable';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import {
-  Search,
-  Filter,
-  Download,
-  Plus,
-  MoreHorizontal,
-  Loader2
-} from 'lucide-react';
 import { useApp } from '../App';
-import { Modal } from '../components/ui/Modal';
 import { PageLayout } from '../components/layout/PageLayout';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { KpiStrip } from '../components/ui/kpi-strip';
+import { NumberTicker } from '../components/ui/number-ticker';
+import { Segmented } from '../components/ui/segmented';
+import { DataTable, type Column } from '../components/ui/data-table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { DownloadIcon, FilterIcon, MoreIcon, PlusIcon, EyeIcon, FileTextIcon, XCircleIcon } from '../components/ui/icons';
 
 interface Order {
   id: string;
@@ -39,185 +36,215 @@ const INITIAL_ORDERS: Order[] = [
   { id: '#ORD-7240', customer: 'Stark Industries', product: 'Power Grid OS', amount: '$250,000.00', status: 'Processing', date: 'Oct 23, 2023' },
 ];
 
+const statusVariant = (status: string) => {
+  switch (status) {
+    case 'Delivered': return 'success' as const;
+    case 'Processing': return 'warning' as const;
+    case 'Shipped': return 'info' as const;
+    default: return 'danger' as const;
+  }
+};
+
+type OrderFilter = 'All' | 'Processing' | 'Shipped' | 'Delivered' | 'Canceled';
+
 export const OrdersPage: React.FC = () => {
-  const { showToast, globalSearch, setGlobalSearch, orders: demoOrders } = useApp();
+  const { showToast, globalSearch, orders: demoOrders } = useApp();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [customer, setCustomer] = useState('');
+  const [product, setProduct] = useState('erp');
+  const [statusFilter, setStatusFilter] = useState<OrderFilter>('All');
 
   const allOrders = useMemo(() => [...INITIAL_ORDERS, ...demoOrders], [demoOrders]);
 
   const filteredOrders = useMemo(() => {
-    return allOrders.filter(order =>
-      order.customer.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      order.id.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      order.product.toLowerCase().includes(globalSearch.toLowerCase())
-    );
-  }, [globalSearch, allOrders]);
+    const term = globalSearch.trim().toLowerCase();
+    return allOrders.filter(order => {
+      const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
+      if (!matchesStatus) return false;
+      if (!term) return true;
+      return (
+        order.customer.toLowerCase().includes(term) ||
+        order.id.toLowerCase().includes(term) ||
+        order.product.toLowerCase().includes(term)
+      );
+    });
+  }, [globalSearch, allOrders, statusFilter]);
+
+  const stats = useMemo(() => ({
+    total: allOrders.length,
+    active: allOrders.filter(o => o.status === 'Processing' || o.status === 'Shipped').length,
+    delivered: allOrders.filter(o => o.status === 'Delivered').length,
+    canceled: allOrders.filter(o => o.status === 'Canceled').length,
+  }), [allOrders]);
 
   const handleDownload = () => {
     setIsDownloading(true);
-    showToast('Exporting order manifest...', 'info');
+    showToast('Exporting order manifest…', 'info');
     setTimeout(() => {
       setIsDownloading(false);
-      showToast('Order manifest downloaded successfully', 'success');
+      showToast('Order manifest downloaded successfully');
     }, 1500);
   };
 
   const handleCreateOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Processing new order entry...', 'info');
+    showToast('Processing new order entry…', 'info');
     setTimeout(() => {
       setIsCreateOpen(false);
-      showToast('Order created successfully', 'success');
+      setCustomer('');
+      setProduct('erp');
+      showToast('Order created successfully');
     }, 1000);
   };
 
   const columns: Column<Order>[] = [
     {
       key: 'id',
-      label: 'Order Reference',
-      cellClassName: 'text-sm font-bold text-blue-600 tracking-tight'
+      header: 'Order',
+      value: (order) => order.id,
+      sortable: true,
+      render: (order) => <span className="font-medium text-primary">{order.id}</span>,
     },
     {
       key: 'customer',
-      label: 'Client Name',
-      cellClassName: 'text-sm font-bold text-slate-900'
+      header: 'Customer',
+      value: (order) => order.customer,
+      sortable: true,
+      render: (order) => <span className="font-medium">{order.customer}</span>,
     },
-    {
-      key: 'product',
-      label: 'Product Module',
-      cellClassName: 'text-sm font-semibold text-slate-500'
-    },
-    {
-      key: 'date',
-      label: 'Transaction Date',
-      cellClassName: 'text-xs font-semibold text-slate-400'
-    },
+    { key: 'product', header: 'Product', value: (order) => order.product },
+    { key: 'date', header: 'Date', value: (order) => order.date, sortable: true },
     {
       key: 'amount',
-      label: 'Gross Value',
+      header: 'Value',
+      value: (order) => order.amount,
       align: 'right',
-      cellClassName: 'text-sm font-semibold text-slate-900 tabular-nums'
+      render: (order) => <span className="font-medium tabular-nums">{order.amount}</span>,
     },
     {
       key: 'status',
-      label: 'Fulfillment',
-      align: 'center',
-      render: (order) => (
-        <Badge variant={
-          order.status === 'Delivered' ? 'success' :
-            order.status === 'Processing' ? 'warning' :
-              order.status === 'Shipped' ? 'default' : 'error'
-        } className="text-xs font-semibold h-6 px-3 flex items-center justify-center w-fit mx-auto">
-          {order.status}
-        </Badge>
-      )
+      header: 'Fulfillment',
+      value: (order) => order.status,
+      render: (order) => <Badge variant={statusVariant(order.status)} dot>{order.status}</Badge>,
     },
-    {
-      key: 'actions',
-      label: '',
-      sortable: false,
-      align: 'right',
-      render: (order) => (
-        <button onClick={(e) => { e.stopPropagation(); showToast(`Opening details for ${order.id}`, 'info'); }} className="p-2 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-all text-slate-300 hover:text-slate-900 active:scale-90">
-          <MoreHorizontal size={18} strokeWidth={2.5} />
-        </button>
-      )
-    }
   ];
 
   const actions = (
     <>
-      <Button
-        variant="outline"
-        onClick={handleDownload}
-        isLoading={isDownloading}
-        leftIcon={!isDownloading && <Download size={18} />}
-        title="Download CSV"
-      />
-      <Button
-        size="sm"
-        onClick={() => setIsCreateOpen(true)}
-        leftIcon={<Plus size={14} strokeWidth={3} />}
-      >
-        Generate New Order
+      <Button variant="outline" size="sm" onClick={handleDownload} loading={isDownloading} aria-label="Download CSV">
+        {!isDownloading && <DownloadIcon />} Export
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => showToast('Advanced filtering options enabled', 'info')}>
+        <FilterIcon /> Filters
+      </Button>
+      <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+        <PlusIcon /> New order
       </Button>
     </>
   );
 
   return (
     <PageLayout
-      title="Order Management"
+      title="Order management"
       description="Track and fulfill your enterprise orders with real-time accuracy."
       actions={actions}
     >
+      <KpiStrip
+        items={[
+          { label: 'Total orders', value: <NumberTicker value={stats.total} countUp />, hint: 'this quarter' },
+          { label: 'In fulfillment', value: <NumberTicker value={stats.active} countUp />, delta: 6.4, hint: 'vs last week' },
+          { label: 'Delivered', value: <NumberTicker value={stats.delivered} countUp />, delta: 12.1, hint: 'vs last week' },
+          { label: 'Canceled', value: <NumberTicker value={stats.canceled} countUp />, delta: -1.8, inverse: true, hint: 'vs last week' },
+        ]}
+      />
 
-      <Card noPadding className="overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-white">
-          <Input
-            variant="white"
-            inputSize="sm"
-            className="max-w-md rounded-full shadow-sm"
-            placeholder="Search orders..."
-            value={globalSearch}
-            onChange={(e) => setGlobalSearch(e.target.value)}
-            icon={<Search size={14} className="text-slate-400" strokeWidth={2.5} />}
-          />
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-              onClick={() => showToast('Advanced filtering options enabled', 'info')}
-              leftIcon={<Filter size={14} strokeWidth={2.5} />}
-            >
-              Filters
-            </Button>
-          </div>
-        </div>
-
-        <DataTable
-          data={filteredOrders}
-          columns={columns}
-          rowKey={(o) => o.id}
-          onRowClick={(o) => showToast(`Opening record ${o.id}`, 'info')}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segmented
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          options={[
+            { value: 'All', label: 'All' },
+            { value: 'Processing', label: 'Processing' },
+            { value: 'Shipped', label: 'Shipped' },
+            { value: 'Delivered', label: 'Delivered' },
+            { value: 'Canceled', label: 'Canceled' },
+          ]}
         />
+        <span className="text-xs text-muted-foreground">{filteredOrders.length} orders</span>
+      </div>
 
-        <div className="p-5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-400 bg-slate-50/30">
-          <p>Displaying {filteredOrders.length} active records</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="xs" disabled>Prev</Button>
-            <Button variant="outline" size="xs">Next</Button>
-          </div>
-        </div>
-      </Card>
+      <DataTable
+        rows={filteredOrders}
+        columns={columns}
+        rowKey={(order) => order.id}
+        pageSize={8}
+        filterPlaceholder="Search orders…"
+        columnMenu
+        onRowClick={(order) => showToast(`Opening record ${order.id}`, 'info')}
+        rowActions={(order) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${order.id}`}>
+                <MoreIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onSelect={() => showToast(`Opening details for ${order.id}`, 'info')}>
+                <EyeIcon /> View details
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => showToast(`Invoice for ${order.id} downloaded`)}>
+                <FileTextIcon /> Download invoice
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem destructive onSelect={() => showToast(`${order.id} marked as canceled`, 'error')}>
+                <XCircleIcon /> Cancel order
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      />
 
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Initialize New Transaction"
-      >
-        <form className="space-y-5" onSubmit={handleCreateOrder}>
-          <Input
-            label="Client Identity"
-            required
-            placeholder="Legal business name"
-          />
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-500">Asset Allocation</label>
-            <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all">
-              <option value="">Select a product...</option>
-              <option value="erp">Premium ERP Suite</option>
-              <option value="cloud">Cloud Storage 1TB</option>
-              <option value="security">Security Bundle</option>
-            </select>
-          </div>
-          <div className="pt-6 flex justify-end gap-3">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button size="sm" type="submit">Create Record</Button>
-          </div>
-        </form>
-      </Modal>
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <form onSubmit={handleCreateOrder} className="grid gap-4">
+            <DialogHeader>
+              <DialogTitle>New order</DialogTitle>
+              <DialogDescription>Create a transaction for an existing client.</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="order-customer" required>Client identity</Label>
+              <Input
+                id="order-customer"
+                required
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+                placeholder="Legal business name"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Product module</Label>
+              <Select value={product} onValueChange={setProduct}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="erp">Premium ERP Suite</SelectItem>
+                  <SelectItem value="cloud">Cloud Storage 1TB</SelectItem>
+                  <SelectItem value="security">Security Bundle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button variant="ghost" size="sm" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button size="sm" type="submit">Create order</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };

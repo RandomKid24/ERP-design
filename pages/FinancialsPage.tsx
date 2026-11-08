@@ -1,19 +1,27 @@
-
-import React, { useMemo } from 'react';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { DataTable, Column } from '../components/ui/DataTable';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { CreditCard, DollarSign, ArrowUpRight, ArrowDownRight, Briefcase, TrendingUp, Search, Download } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../App';
 import { PageLayout } from '../components/layout/PageLayout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { StatCard } from '../components/ui/stat-card';
+import { AreaChart } from '../components/ui/area-chart';
+import { NumberTicker } from '../components/ui/number-ticker';
+import { Segmented } from '../components/ui/segmented';
+import { DataTable, type Column } from '../components/ui/data-table';
+import {
+  BriefcaseIcon,
+  CreditCardIcon,
+  DollarSignIcon,
+  DownloadIcon,
+  TrendingIcon,
+} from '../components/ui/icons';
 
 interface LedgerEntry {
   label: string;
   amount: string;
   date: string;
-  status: string;
+  status: 'Paid' | 'Hold' | 'Pending';
 }
 
 const LEDGER_DATA: LedgerEntry[] = [
@@ -29,181 +37,146 @@ const LEDGER_DATA: LedgerEntry[] = [
   { label: 'Azure Dynamics (Monthly)', amount: '-$450.00', date: 'Oct 02, 2023', status: 'Paid' },
 ];
 
+const statusVariant = (status: LedgerEntry['status']) => {
+  switch (status) {
+    case 'Paid': return 'success' as const;
+    case 'Pending': return 'warning' as const;
+    default: return 'default' as const;
+  }
+};
+
+type SeriesView = 'Both' | 'Actual' | 'Predicted';
+
+const ACTUAL = [65, 45, 95, 75, 55, 85, 0];
+const PREDICTED = [70, 50, 90, 80, 65, 85, 100];
+
 export const FinancialsPage: React.FC = () => {
-  const { showToast, globalSearch, setGlobalSearch } = useApp();
+  const { showToast, globalSearch } = useApp();
+  const [seriesView, setSeriesView] = useState<SeriesView>('Both');
 
   const handleDownload = () => {
-    showToast('Generating fiscal year-end report...', 'info');
-    setTimeout(() => showToast('Report generated successfully', 'success'), 1500);
+    showToast('Generating fiscal year-end report…', 'info');
+    setTimeout(() => showToast('Report generated successfully'), 1500);
   };
 
   const filteredLedger = useMemo(() => {
+    const term = globalSearch.trim().toLowerCase();
+    if (!term) return LEDGER_DATA;
     return LEDGER_DATA.filter(item =>
-      item.label.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      item.status.toLowerCase().includes(globalSearch.toLowerCase())
+      item.label.toLowerCase().includes(term) ||
+      item.status.toLowerCase().includes(term)
     );
   }, [globalSearch]);
 
   const columns: Column<LedgerEntry>[] = [
     {
       key: 'label',
-      label: 'Description',
-      cellClassName: 'text-sm font-medium text-slate-800'
+      header: 'Description',
+      value: (item) => item.label,
+      sortable: true,
+      render: (item) => <span className="font-medium">{item.label}</span>,
     },
-    {
-      key: 'date',
-      label: 'Date',
-      cellClassName: 'text-xs text-slate-400 font-medium'
-    },
+    { key: 'date', header: 'Date', value: (item) => item.date, sortable: true },
     {
       key: 'status',
-      label: 'Status',
-      render: (item) => (
-        <span className="text-xs font-medium text-slate-400">{item.status}</span>
-      )
+      header: 'Status',
+      value: (item) => item.status,
+      render: (item) => <Badge variant={statusVariant(item.status)} dot>{item.status}</Badge>,
     },
     {
       key: 'amount',
-      label: 'Amount',
+      header: 'Amount',
+      value: (item) => parseFloat(item.amount.replace(/[^0-9.-]/g, '')),
+      sortable: true,
       align: 'right',
-      render: (item) => {
-        const isPositive = item.amount.startsWith('+');
-        return (
-          <span className={`text-sm font-semibold tabular-nums ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
-            {item.amount}
-          </span>
-        );
-      }
-    }
+      render: (item) => (
+        <span className={`font-medium tabular-nums ${item.amount.startsWith('+') ? 'text-success' : ''}`}>
+          {item.amount}
+        </span>
+      ),
+    },
   ];
 
   const actions = (
-    <Button
-      onClick={handleDownload}
-      size="sm"
-      leftIcon={<Download size={14} strokeWidth={3} />}
-    >
-      Download Report
+    <Button size="sm" onClick={handleDownload}>
+      <DownloadIcon /> Download report
     </Button>
   );
 
   return (
     <PageLayout
-      title="Financial Reporting"
+      title="Financial reporting"
       description="Real-time fiscal monitoring and revenue forecasting modules."
       actions={actions}
     >
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <Card onClick={() => showToast('Detailing Net Profit...', 'info')}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-              <DollarSign size={16} className="text-blue-600" />
-            </div>
-            <Badge variant="outline" className="text-xs text-slate-400 font-medium py-0 border-slate-100">OCT 2023</Badge>
-          </div>
-          <p className="text-slate-400 text-xs font-medium leading-none mb-1">Net Profit</p>
-          <h3 className="text-xl font-bold text-slate-900 tabular-nums">$142,402.00</h3>
-          <div className="flex items-center gap-1 mt-3 text-emerald-600 text-xs font-semibold">
-            <ArrowUpRight size={12} strokeWidth={3} />
-            <span>+12.5% vs LW</span>
-          </div>
-        </Card>
-
-        <Card onClick={() => showToast('Detailing Op. Expenses...', 'info')}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
-              <Briefcase size={16} className="text-rose-600" />
-            </div>
-            <Badge variant="success" className="text-xs font-semibold px-1 py-0 border-emerald-100 bg-emerald-50">Target Met</Badge>
-          </div>
-          <p className="text-slate-400 text-xs font-medium leading-none mb-1">Op. Expenses</p>
-          <h3 className="text-xl font-bold text-slate-900 tabular-nums">$45,210.00</h3>
-          <div className="flex items-center gap-1 mt-3 text-rose-500 text-xs font-semibold">
-            <ArrowDownRight size={12} strokeWidth={3} />
-            <span>-2.1% efficiency</span>
-          </div>
-        </Card>
-
-        <Card onClick={() => showToast('Detailing Credit Risk...', 'info')}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-              <CreditCard size={16} className="text-amber-600" />
-            </div>
-            <TrendingUp size={14} className="text-slate-300" />
-          </div>
-          <p className="text-slate-400 text-xs font-medium leading-none mb-1">Credit Risk</p>
-          <h3 className="text-xl font-bold text-slate-900 tabular-nums">$12,000.45</h3>
-          <div className="mt-4">
-            <div className="w-full bg-slate-50 rounded-full h-1 overflow-hidden">
-              <div className="bg-amber-400 h-full transition-all duration-1000" style={{ width: '45%' }}></div>
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard
+          label="Net profit"
+          value={<NumberTicker value={142402} prefix="$" countUp />}
+          delta={12.5}
+          deltaLabel="vs last week"
+          icon={<DollarSignIcon />}
+        />
+        <StatCard
+          label="Operating expenses"
+          value={<NumberTicker value={45210} prefix="$" countUp />}
+          delta={-2.1}
+          deltaLabel="efficiency gain"
+          icon={<BriefcaseIcon />}
+        />
+        <StatCard
+          label="Credit risk"
+          value={<NumberTicker value={12000} prefix="$" countUp />}
+          icon={<CreditCardIcon />}
+          chart={<TrendingIcon className="size-8 text-warning" />}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
-        <Card title="Revenue Stream" description="Q4 Predictive analysis vs Actual performance.">
-          <div className="flex gap-4 mb-4">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-              <span className="text-xs font-medium text-slate-400">Actual</span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+            <div className="grid gap-1.5">
+              <CardTitle>Revenue stream</CardTitle>
+              <CardDescription>Q4 predictive analysis vs actual performance.</CardDescription>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full border-2 border-blue-600 border-dashed bg-transparent"></div>
-              <span className="text-xs font-medium text-slate-400">Predicted</span>
-            </div>
-          </div>
-          <div className="h-[140px] flex items-end gap-1.5 px-2 relative group">
-            <div className="absolute inset-0 top-4 bottom-8 flex flex-col justify-between pointer-events-none opacity-20">
-              <div className="border-t border-slate-200 w-full h-px"></div>
-              <div className="border-t border-slate-200 w-full h-px"></div>
-              <div className="border-t border-slate-200 w-full h-px"></div>
-            </div>
-            {[
-              { a: 65, p: 70 },
-              { a: 45, p: 50 },
-              { a: 95, p: 90 },
-              { a: 75, p: 80 },
-              { a: 55, p: 65 },
-              { a: 85, p: 85 },
-              { a: 0, p: 100 }
-            ].map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1 relative group/bar">
-                {d.p > 0 && (
-                  <div
-                    className="absolute bottom-6 w-full border-t-2 border-blue-200 border-dashed z-0 opacity-40 group-hover/bar:opacity-100 transition-opacity"
-                    style={{ bottom: `calc(${d.p}% + 24px)` }}
-                  />
-                )}
-                <div
-                  className={`w-full ${d.a === 0 ? 'bg-slate-100' : 'bg-blue-600/30 group-hover/bar:bg-blue-600'} rounded-sm transition-all duration-300 cursor-pointer z-10`}
-                  style={{ height: d.a > 0 ? `${d.a}%` : '4px' }}
-                ></div>
-                <span className="text-xs font-semibold text-slate-300 mt-1">W{i + 1}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card noPadding title="Ledger Highlights" description="Latest verified system entries.">
-          <div className="px-5 py-3 border-b border-slate-100 bg-white">
-            <Input
-              variant="white"
-              inputSize="sm"
-              className="max-w-xs rounded-full shadow-sm"
-              placeholder="Filter ledger entries..."
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              onClear={() => setGlobalSearch('')}
-              icon={<Search size={14} className="text-slate-400" strokeWidth={2.5} />}
+            <Segmented
+              value={seriesView}
+              onValueChange={setSeriesView}
+              options={[
+                { value: 'Both', label: 'Both' },
+                { value: 'Actual', label: 'Actual' },
+                { value: 'Predicted', label: 'Forecast' },
+              ]}
             />
-          </div>
-          <DataTable
-            data={filteredLedger}
-            columns={columns}
-            rowKey={(item) => item.label + item.date}
-            className="border-none"
-          />
+          </CardHeader>
+          <CardContent>
+            <AreaChart
+              labels={['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7']}
+              series={[
+                ...(seriesView !== 'Predicted' ? [{ name: 'Actual', data: ACTUAL }] : []),
+                ...(seriesView !== 'Actual'
+                  ? [{ name: 'Predicted', data: PREDICTED, color: 'text-muted-foreground' }]
+                  : []),
+              ]}
+              format={(n) => `${n}k`}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle>Ledger highlights</CardTitle>
+            <CardDescription>Latest verified system entries.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              rows={filteredLedger}
+              columns={columns}
+              rowKey={(item) => item.label + item.date}
+              pageSize={6}
+              filterPlaceholder="Filter ledger entries…"
+            />
+          </CardContent>
         </Card>
       </div>
     </PageLayout>

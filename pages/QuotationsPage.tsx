@@ -1,23 +1,15 @@
-
 import React, { useState, useMemo } from 'react';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import {
-  Plus,
-  Save,
-  Send,
-  FileText,
-  User,
-  Calendar,
-  AlertCircle,
-  Hash,
-  ChevronRight,
-  Eye
-} from 'lucide-react';
 import { useApp } from '../App';
 import { PageLayout } from '../components/layout/PageLayout';
-import { DeleteButton } from '../components/ui/DeleteButton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Alert } from '../components/ui/alert';
+import { Separator } from '../components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Invoice } from '../components/ui/invoice';
+import { CalendarIcon, ChevronRightIcon, EyeIcon, HashIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UserIcon } from '../components/ui/icons';
 
 interface QuotationItem {
   id: string;
@@ -39,6 +31,7 @@ export const QuotationsPage: React.FC = () => {
   ]);
 
   const [taxRate] = useState(15);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0), [items]);
   const taxAmount = useMemo(() => (subtotal * taxRate) / 100, [subtotal, taxRate]);
@@ -47,7 +40,7 @@ export const QuotationsPage: React.FC = () => {
   const addItem = () => setItems([...items, { id: Date.now().toString(), description: '', quantity: 1, unitPrice: 0 }]);
   const removeItem = (id: string) => {
     if (items.length === 1) {
-      showToast('At least one item required.', 'error');
+      showToast('At least one item is required.', 'error');
       return;
     }
     setItems(items.filter(item => item.id !== id));
@@ -58,85 +51,157 @@ export const QuotationsPage: React.FC = () => {
   };
 
   const actions = (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" leftIcon={<Eye size={14} />}>Preview</Button>
-      <Button size="sm" onClick={() => showToast('Draft saved.')} leftIcon={<Save size={14} />}>Save Draft</Button>
-    </div>
+    <>
+      <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}><EyeIcon /> Preview</Button>
+      <Button size="sm" onClick={() => showToast('Draft saved.')}><SaveIcon /> Save draft</Button>
+    </>
   );
 
   return (
     <PageLayout
-      title="Draft New Quotation"
-      description={`ID: ${quotationNumber}`}
+      title="New quotation"
+      description={`Draft ${quotationNumber}`}
       actions={actions}
     >
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card title="Customer Profile" description="Billing identity and schedule.">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input label="Business Entity" placeholder="Acme Corp LLC" icon={<User size={14} />} value={clientName} onChange={(e) => setClientName(e.target.value)} />
-              <Input label="Recipient Email" placeholder="billing@acme.com" icon={<Send size={14} />} value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
-              <Input label="Document Ref" icon={<Hash size={14} />} value={quotationNumber} onChange={(e) => setQuotationNumber(e.target.value)} />
-              <Input label="Expiration Date" type="date" icon={<Calendar size={14} />} value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
-            </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer profile</CardTitle>
+              <CardDescription>Billing identity and document schedule.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="client-name">Business entity</Label>
+                <Input id="client-name" placeholder="Acme Corp LLC" leftIcon={<UserIcon />} value={clientName} onChange={(e) => setClientName(e.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="client-email">Recipient email</Label>
+                <Input id="client-email" type="email" placeholder="billing@acme.com" leftIcon={<SendIcon />} value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="quote-ref">Document ref</Label>
+                <Input id="quote-ref" leftIcon={<HashIcon />} value={quotationNumber} onChange={(e) => setQuotationNumber(e.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="quote-expiry">Expiration date</Label>
+                <Input id="quote-expiry" type="date" leftIcon={<CalendarIcon />} value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+              </div>
+            </CardContent>
           </Card>
 
-          <Card
-            title="Service Line Items"
-            description="Detailed breakdown of costs."
-            headerAction={
-              <Button variant="ghost" size="xs" className="text-blue-600 font-semibold" leftIcon={<Plus size={12} />} onClick={addItem}>Add Row</Button>
-            }
-          >
-            <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_80px_100px_40px] gap-4 px-2 text-xs font-medium text-slate-400">
+          <Card>
+            <CardHeader className="flex-row items-start justify-between">
+              <div className="grid gap-1">
+                <CardTitle>Service line items</CardTitle>
+                <CardDescription>Detailed breakdown of costs.</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={addItem}><PlusIcon /> Add row</Button>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <div className="grid grid-cols-[1fr_72px_96px_36px] gap-3 px-1 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <span>Description</span>
                 <span className="text-center">Qty</span>
                 <span className="text-right">Price</span>
-                <span></span>
+                <span />
               </div>
               {items.map((item) => (
-                <div key={item.id} className="grid grid-cols-[1fr_80px_100px_40px] gap-4 items-center bg-white p-3 rounded-xl border border-slate-200 hover:border-blue-200 hover:shadow-sm transition-all">
-                  <input className="bg-transparent text-sm font-medium text-slate-800 outline-none px-2" placeholder="Item name..." value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} />
-                  <input type="number" className="bg-transparent text-sm font-semibold text-slate-600 text-center outline-none" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)} />
+                <div key={item.id} className="grid grid-cols-[1fr_72px_96px_36px] items-center gap-3 rounded-lg border bg-background p-2 transition-colors hover:border-muted-foreground/30">
+                  <Input
+                    className="h-9 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                    placeholder="Item name…"
+                    value={item.description}
+                    onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    className="h-9 border-0 bg-transparent text-center shadow-none focus-visible:ring-0"
+                    value={item.quantity}
+                    min={1}
+                    onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                  />
                   <div className="text-right">
-                    <span className="text-sm font-semibold text-slate-900 tracking-tight">${(item.quantity * item.unitPrice).toLocaleString()}</span>
+                    <span className="text-sm font-medium tabular-nums">${(item.quantity * item.unitPrice).toLocaleString()}</span>
                   </div>
-                  <DeleteButton onClick={() => removeItem(item.id)} />
+                  <Button variant="ghost" size="icon-sm" onClick={() => removeItem(item.id)} aria-label="Remove item">
+                    <TrashIcon />
+                  </Button>
                 </div>
               ))}
-            </div>
+            </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card title="Summary">
-            <div className="space-y-4 py-2">
-              <div className="flex justify-between text-xs font-medium text-slate-500">
-                <span>Net Subtotal</span>
-                <span className="text-slate-900 font-semibold">${subtotal.toLocaleString()}</span>
+        <div className="grid content-start gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              <div className="flex items-center justify-between text-[13px] text-muted-foreground">
+                <span>Net subtotal</span>
+                <span className="font-medium tabular-nums text-foreground">${subtotal.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-xs font-medium text-slate-500">
+              <div className="flex items-center justify-between text-[13px] text-muted-foreground">
                 <span>VAT ({taxRate}%)</span>
-                <span className="text-slate-900 font-semibold">+${taxAmount.toLocaleString()}</span>
+                <span className="font-medium tabular-nums text-foreground">+${taxAmount.toLocaleString()}</span>
               </div>
-              <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                <span className="text-sm font-semibold text-slate-900">Total Payable</span>
-                <span className="text-2xl font-bold text-blue-600">${total.toLocaleString()}</span>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total payable</span>
+                <span className="text-2xl font-semibold tabular-nums text-primary">${total.toLocaleString()}</span>
               </div>
-            </div>
-            <Button className="w-full mt-6 rounded-lg h-11 shadow-md shadow-blue-100" rightIcon={<ChevronRight size={14} />}>Issue Document</Button>
+              <Button className="mt-2 w-full">
+                Issue document <ChevronRightIcon />
+              </Button>
+            </CardContent>
           </Card>
 
-          <div className="p-4 bg-blue-50 border border-blue-600/10 rounded-xl flex gap-3 shadow-sm">
-            <AlertCircle size={18} className="text-blue-600 shrink-0" />
-            <p className="text-sm text-blue-600 font-medium leading-relaxed">
-              Quotes are generated as encrypted PDFs. All revisions are tracked in the system audit logs.
-            </p>
-          </div>
+          <Alert variant="info" title="Encrypted PDF output">
+            Quotes are generated as encrypted PDFs. All revisions are tracked in the system audit logs.
+          </Alert>
         </div>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto pt-10">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Quotation {quotationNumber}</DialogTitle>
+            <DialogDescription>Draft quotation preview.</DialogDescription>
+          </DialogHeader>
+          <Invoice
+            number={quotationNumber}
+            status="unpaid"
+            issued={new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            due={expiryDate || new Date(Date.now() + 14 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            from={{
+              name: 'Aether Systems Inc.',
+              lines: ['500 Congress Ave', 'Austin, TX 78701', 'billing@aethererp.com'],
+            }}
+            to={{
+              name: clientName || 'Prospective Client',
+              lines: [clientEmail || 'contact@prospect.com'],
+            }}
+            lines={items
+              .filter((item) => item.description.trim())
+              .map((item) => ({ description: item.description, qty: item.quantity, price: item.unitPrice }))}
+            taxRate={taxRate / 100}
+            currency="USD"
+            locale="en-US"
+            notes="This quote is valid for 14 days from the issue date unless stated otherwise."
+            className="border-0 bg-transparent p-0"
+          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(false)}>Close</Button>
+            <Button variant="outline" size="sm" onClick={() => { setPreviewOpen(false); showToast('Quotation sent'); }}>
+              <SendIcon /> Send
+            </Button>
+            <Button size="sm" onClick={() => { setPreviewOpen(false); showToast('Quotation downloaded'); }}>
+              Download PDF
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };

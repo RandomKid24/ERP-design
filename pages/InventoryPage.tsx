@@ -1,19 +1,30 @@
-
 import React, { useMemo } from 'react';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { DataTable, Column } from '../components/ui/DataTable';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { Package, AlertTriangle, ArrowRight, Box, Search, RefreshCw, MoreVertical, TrendingDown } from 'lucide-react';
 import { useApp } from '../App';
 import { PageLayout } from '../components/layout/PageLayout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Progress } from '../components/ui/progress';
+import { StatCard } from '../components/ui/stat-card';
+import { DataTable, type Column } from '../components/ui/data-table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import {
+  ArrowRightIcon,
+  BoxIcon,
+  EditIcon,
+  MoreIcon,
+  PackageIcon,
+  RefreshIcon,
+  TriangleAlertIcon,
+  WarehouseIcon,
+  XCircleIcon,
+} from '../components/ui/icons';
 
 interface StockItem {
   sku: string;
   name: string;
   stock: number;
-  status: string;
+  status: 'In Stock' | 'Low Stock' | 'Out of Stock';
   category: string;
 }
 
@@ -29,164 +40,155 @@ const STOCK_DATA: StockItem[] = [
   { sku: 'AUTH-V3', name: 'Auth Module V3', stock: 340, status: 'In Stock', category: 'Security' },
 ];
 
+const statusVariant = (status: StockItem['status']) => {
+  switch (status) {
+    case 'In Stock': return 'success' as const;
+    case 'Low Stock': return 'warning' as const;
+    default: return 'danger' as const;
+  }
+};
+
 export const InventoryPage: React.FC = () => {
-  const { showToast, globalSearch, setGlobalSearch } = useApp();
+  const { showToast, globalSearch } = useApp();
 
   const filteredStock = useMemo(() => {
+    const term = globalSearch.trim().toLowerCase();
+    if (!term) return STOCK_DATA;
     return STOCK_DATA.filter(item =>
-      item.name.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      item.sku.toLowerCase().includes(globalSearch.toLowerCase()) ||
-      item.category.toLowerCase().includes(globalSearch.toLowerCase())
+      item.name.toLowerCase().includes(term) ||
+      item.sku.toLowerCase().includes(term) ||
+      item.category.toLowerCase().includes(term)
     );
   }, [globalSearch]);
+
+  const stats = useMemo(() => ({
+    tracked: STOCK_DATA.length,
+    low: STOCK_DATA.filter(i => i.status === 'Low Stock').length,
+    out: STOCK_DATA.filter(i => i.status === 'Out of Stock').length,
+  }), []);
 
   const columns: Column<StockItem>[] = [
     {
       key: 'name',
-      label: 'Item Details',
+      header: 'Item',
+      value: (item) => item.name,
+      sortable: true,
       render: (item) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-white border border-transparent group-hover:border-slate-100 transition-all">
-            <Box size={14} />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-slate-800 leading-none">{item.name}</span>
-            <span className="text-xs font-mono text-slate-400 mt-1">{item.sku}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-secondary/60 text-muted-foreground">
+            <BoxIcon className="size-4" />
+          </span>
+          <div className="grid gap-0.5">
+            <span className="font-medium leading-tight">{item.name}</span>
+            <span className="font-mono text-[11px] text-muted-foreground">{item.sku}</span>
           </div>
         </div>
-      )
+      ),
     },
-    {
-      key: 'category',
-      label: 'Category',
-      cellClassName: 'text-xs font-semibold text-slate-500'
-    },
+    { key: 'category', header: 'Category', value: (item) => item.category, sortable: true },
     {
       key: 'stock',
-      label: 'Stock',
-      cellClassName: 'text-xs font-semibold text-slate-900 tabular-nums'
+      header: 'On hand',
+      value: (item) => item.stock,
+      sortable: true,
+      align: 'right',
+      render: (item) => <span className="font-medium tabular-nums">{item.stock.toLocaleString()}</span>,
     },
     {
       key: 'status',
-      label: 'Status',
-      render: (item) => (
-        <Badge variant={
-          item.status === 'In Stock' ? 'success' :
-            item.status === 'Low Stock' ? 'warning' : 'error'
-        } className="text-xs py-0 h-5 flex items-center justify-center w-fit">
-          {item.status}
-        </Badge>
-      )
+      header: 'Status',
+      value: (item) => item.status,
+      render: (item) => <Badge variant={statusVariant(item.status)} dot>{item.status}</Badge>,
     },
-    {
-      key: 'actions',
-      label: '',
-      sortable: false,
-      align: 'right',
-      render: (item) => (
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={(e) => { e.stopPropagation(); showToast(`Record: ${item.name}`, 'info'); }}
-          className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-slate-600"
-          leftIcon={<MoreVertical size={14} />}
-        />
-      )
-    }
   ];
 
   const actions = (
-    <div className="flex gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        className="rounded-full"
-        onClick={() => showToast('Generating report...', 'info')}
-        leftIcon={<RefreshCw size={14} />}
-      >
-        Report
+    <>
+      <Button variant="outline" size="sm" onClick={() => showToast('Generating stock report…', 'info')}>
+        <RefreshIcon /> Report
       </Button>
-      <Button
-        size="sm"
-        className="rounded-full"
-        onClick={() => showToast('Opening bulk editor', 'info')}
-        leftIcon={<Package size={14} />}
-      >
-        Update
+      <Button size="sm" onClick={() => showToast('Opening bulk editor', 'info')}>
+        <PackageIcon /> Update stock
       </Button>
-    </div>
+    </>
   );
 
   return (
     <PageLayout
-      title="Inventory Management"
+      title="Inventory management"
       description="Real-time tracking of enterprise assets and resources."
       actions={actions}
     >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Tracked SKUs" value={stats.tracked} icon={<WarehouseIcon />} />
+        <StatCard label="Low stock" value={stats.low} delta={-12} deltaLabel="restock pending" icon={<TriangleAlertIcon />} />
+        <StatCard label="Out of stock" value={stats.out} icon={<XCircleIcon />} />
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <div className="lg:col-span-3">
-          <Card noPadding>
-            <div className="px-5 py-3 bg-white border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between">
-              <Input
-                variant="white"
-                inputSize="sm"
-                className="max-w-xs rounded-full shadow-sm"
-                placeholder="Search SKU indices..."
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                icon={<Search size={14} className="text-slate-400" strokeWidth={2.5} />}
-              />
-            </div>
-
-            <DataTable
-              data={filteredStock}
-              columns={columns}
-              rowKey={(i) => i.sku}
-            />
-          </Card>
+          <DataTable
+            rows={filteredStock}
+            columns={columns}
+            rowKey={(item) => item.sku}
+            pageSize={8}
+            filterPlaceholder="Search SKU indices…"
+            columnMenu
+            onRowClick={(item) => showToast(`Record: ${item.name}`, 'info')}
+            rowActions={(item) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${item.sku}`}>
+                    <MoreIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onSelect={() => showToast(`Editing ${item.sku}`, 'info')}>
+                    <EditIcon /> Edit record
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => showToast(`Restock order drafted for ${item.sku}`)}>
+                    <PackageIcon /> Restock
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem destructive onSelect={() => showToast(`${item.sku} archived`, 'error')}>
+                    <XCircleIcon /> Archive
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          />
         </div>
 
-        <div className="space-y-4">
-          <Card
-            className="border-amber-200/60 bg-amber-50/10 shadow-amber-900/5 shadow-xl"
-            title="Operational Alert"
-            description="Procurement threshold detected."
-          >
-            <div className="space-y-4 py-1">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-white rounded-lg border border-amber-200 text-amber-500 flex-shrink-0 shadow-sm animate-pulse">
-                  <AlertTriangle size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 leading-tight">Critical Depletion</h4>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed mt-1">
-                    3 priority SKUs are currently below the safety stock margin.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-slate-400">Urgency</span>
-                  <span className="text-amber-600">85%</span>
-                </div>
-                <div className="h-1.5 w-full bg-amber-200/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 rounded-full transition-all duration-1000" style={{ width: '85%' }}></div>
-                </div>
-              </div>
-
-              <Button
-                variant="secondary"
-                className="w-full rounded-full"
-                onClick={() => showToast('Procurement workflow initiated', 'success')}
-                rightIcon={<ArrowRight size={12} strokeWidth={3} />}
-              >
-                Purchase
-              </Button>
+        <Card className="self-start">
+          <CardHeader>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="grid size-8 place-items-center rounded-lg border border-warning/25 bg-warning/10 text-warning">
+                <TriangleAlertIcon className="size-4" />
+              </span>
+              <Badge variant="warning">Action needed</Badge>
             </div>
-          </Card>
-        </div>
+            <CardTitle>Operational alert</CardTitle>
+            <CardDescription>Procurement threshold detected.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">{stats.low + stats.out} priority SKUs</span> are below the
+              safety stock margin and need replenishment.
+            </p>
+
+            <div className="grid gap-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Urgency</span>
+                <span className="font-medium text-warning">85%</span>
+              </div>
+              <Progress value={85} tone="warning" aria-label="Restock urgency" />
+            </div>
+
+            <Button className="w-full" onClick={() => showToast('Procurement workflow initiated', 'success')}>
+              Start purchase <ArrowRightIcon />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </PageLayout>
   );

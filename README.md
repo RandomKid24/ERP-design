@@ -1,6 +1,8 @@
 # Aether ERP — Enterprise Design Blueprint
 
-> A high-performance, pixel-perfect ERP dashboard design system — built with React 19, Tailwind CSS 3, and Lucide Icons. Mirrors the production S&M Hub marketing module at 1:1 visual fidelity.
+> A high-performance, pixel-perfect ERP dashboard — built with React 19, Tailwind CSS 4, and [befui](https://github.com/RandomKid24/befui) components.
+
+> **Note:** the UI has been migrated to befui (Tailwind 4, token-based theming, `components/ui/*`). The architecture diagrams and file tree below describe the original design blueprint; component names such as `ChartsSection`, `StatCard` and `Toast` now map to befui equivalents (`charts`, `stat-card`, `toast`).
 
 ```mermaid
 %%{init: {'theme': 'neutral', 'themeVariables': { 'primaryColor': '#2563eb', 'lineColor': '#e2e8f0'}}}%%
